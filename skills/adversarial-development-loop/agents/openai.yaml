@@ -1,0 +1,4 @@
+interface:
+  display_name: "对抗式自循环开发 (Adversarial Loop)"
+  short_description: "实现前先证伪方案：PLAN→REFUTE→REVISE→实现→测试→复盘"
+  default_prompt: "用对抗式自循环开发推进当前任务：①PLAN 找理论缺口 → ②派子 agent REFUTE 证伪尚未实现的方案 → ③REVISE → ④实现 → ⑤测试(全套+回归) → ⑥复盘+落盘 loop-journal"
