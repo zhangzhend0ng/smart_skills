@@ -1,0 +1,7 @@
+{
+  "id": "scoring-detection/01-false-perfect",
+  "flaw_type": "false-perfect",
+  "expected_severity": "blocker",
+  "expected_keywords": ["false-perfect", "假满分", "empty input", "无数据", "退出总分", "unobserved"],
+  "description": "空输入返回满分 100:把'不可观测'标成'完美一致'。正确做法是无数据时退出总分(score=null/assessable=false),既不是 100 也不是 0。"
+}

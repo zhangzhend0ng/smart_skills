@@ -1,0 +1,7 @@
+{
+  "id": "scoring-detection/03-magic-threshold",
+  "flaw_type": "magic-threshold",
+  "expected_severity": "major",
+  "expected_keywords": ["magic-threshold", "魔数", "无出处", "85", "矛盾", "provenance"],
+  "description": "阈值 85 无出处注释且与默认上限 70 矛盾。数值/阈值必须带出处注释。"
+}

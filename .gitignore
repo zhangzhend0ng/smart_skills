@@ -1,0 +1,6 @@
+# Python 缓存(py_compile / 运行产物)
+__pycache__/
+*.py[cod]
+
+# 本机会话 scratch(zcode 计划快照等,不入库)
+.zcode/

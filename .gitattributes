@@ -1,0 +1,4 @@
+# 统一文本换行:提交时按 LF 规范化,避免 CRLF 工作树毒害脚本(token 混入 \r)
+* text=auto
+*.py text eol=lf
+*.sh text eol=lf

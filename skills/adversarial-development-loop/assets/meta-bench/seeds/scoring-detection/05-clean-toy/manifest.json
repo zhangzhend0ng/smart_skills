@@ -1,0 +1,7 @@
+{
+  "id": "scoring-detection/05-clean-toy",
+  "flaw_type": "none",
+  "expected_severity": "minor",
+  "expected_keywords": [],
+  "description": "干净反例(测误报/precision):无种子缺陷,阈值有出处且可覆盖。报告不得出现 blocker/major。"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "scoring-detection/04-dead-branch",
+  "flaw_type": "dead-branch",
+  "expected_severity": "major",
+  "expected_keywords": ["dead-branch", "死代码", "不可达", "unreachable", "clamp", "防御"],
+  "description": "clamp 之后判断 clamped < 0 永不成立,防御分支是死代码。"
+}

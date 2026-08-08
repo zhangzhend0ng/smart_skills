@@ -1,0 +1,7 @@
+{
+  "id": "scoring-detection/06-clean-config",
+  "flaw_type": "none",
+  "expected_severity": "minor",
+  "expected_keywords": [],
+  "description": "干净反例(配置卫生向):max 优先级正确、默认值有出处。报告不得出现 blocker/major。"
+}

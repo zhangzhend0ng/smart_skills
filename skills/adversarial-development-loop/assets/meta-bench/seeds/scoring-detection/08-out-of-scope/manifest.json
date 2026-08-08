@@ -1,0 +1,7 @@
+{
+  "id": "scoring-detection/08-out-of-scope",
+  "flaw_type": "none",
+  "expected_severity": "minor",
+  "expected_keywords": [],
+  "description": "out-of-scope 反例(测过度触发/precision):纯静态查找表,无状态空间/阈值/消费者逻辑,本 skill 不适用。报告不得出现 blocker/major;出现 = 过度审查。"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "scoring-detection/07-clean-verdict",
+  "flaw_type": "none",
+  "expected_severity": "minor",
+  "expected_keywords": [],
+  "description": "干净反例(evidence/verdict 分离向):缺数据退出总分,及格线有出处。报告不得出现 blocker/major。"
+}
