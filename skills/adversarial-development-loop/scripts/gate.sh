@@ -5,6 +5,7 @@
 #   G1 journal 覆盖:代码/内核改动(CODE ∪ KERNEL)必须伴随 journal 改动
 #   G2 journal 完成标志:journal 已改则其(改动后)内容必须含合法 `Pattern Index 更新: (N/A|新增)` 行
 #   G3 内核/bench 资产改动:必须通过 meta-bench `--verify` + `--demo`(只读)
+#   G4 LF 卫生:改动集内 .py/.sh 含 CRLF(\r)→ FAIL(工作树 pre-commit 检测;CI 快照恒 LF 无意义)
 #
 # iter 119 边界(引自 Stratum loop-journal.md:5297 一手源):
 #   "脚本只能防数字/路径漂移(且多源打架时查不准),防不了语义/方案级漂移——后者靠对抗式核实。"
@@ -41,6 +42,7 @@ if [ "${1:-}" = "--why" ]; then
 G1: 代码/内核改动必须伴随 journal 改动(每轮迭代落盘条目)
 G2: journal 内容必须含合法 'Pattern Index 更新: (N/A|新增)' 行(机械完成标志)
 G3: 内核/bench 资产改动必须通过 meta-bench --verify + --demo
+G4: 改动集内 .py/.sh 不得含 CRLF(工作树检测)
 边界(iter 119):只查过程痕迹存在性,不判语义真伪;勿加语义检查
 EOF
   exit 0
@@ -156,6 +158,21 @@ main() {
   else
     echo "G3 PASS: 无内核/bench 改动"
   fi
+
+  # G4: LF 卫生——改动集内 .py/.sh 含 CRLF(\r)则 FAIL(工作树 pre-commit 检测)
+  # 注:用 tr -cd '\r' 而非 grep $'\r'——Git Bash fresh 进程中 grep 对孤立 CR
+  #     模式行为不一致(实测 harness 内 0 / 脚本内 1),tr 的转义解释稳定。
+  lf_bad=0
+  while IFS= read -r p; do
+    [ -z "$p" ] && continue
+    case "$p" in
+      *.py|*.sh) if [ -f "$p" ] && [ -n "$(tr -cd '\r' < "$p")" ]; then
+                   echo "G4 FAIL: $p 含 CRLF(须 LF,见 .gitattributes)"
+                   lf_bad=1
+                 fi;;
+    esac
+  done <<< "$changes"
+  [ "$lf_bad" = 1 ] && fail=1
 
   [ "$env_err" = 1 ] && return 2
   [ "$fail" = 1 ] && return 1

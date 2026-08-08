@@ -231,3 +231,60 @@ scripts/gate.sh(新);references/framework-manual.md §6;README.md;LOOP-JOURNAL.m
 
 ### 遗留 backlog
 CI 门禁挂钩(pre-commit/CI 接入 gate;全种子 `--score` 基准放 CI 侧,沿用 m4 建议);类型标注(接受);`--score-all`;真实样本回流。迭代 3 backlog 中"journal 机械校验(iter 119 已证伪)"一条——本轮以记账 gate 形式落地,与证伪的 check_drift(语义级)区隔,边界见 gate.sh 头注释。
+
+---
+
+## 迭代 5 — backlog 全清:--score-all / 脚手架 / 类型标注 / CI / 真实样本回流
+
+### 触发的理论缺口
+剩余 backlog 四项一次落地:--score-all(全种子基线)、类型标注、CI 接入、真实样本回流。含聚合逻辑与配置类新增 → 批量对抗。
+
+### grep journal 结果(Step 1 强制)
+Pattern Index:gate-bookkeeping-boundary / fact-provenance / glob-expansion-in-patterns;迭代 4 backlog 四项;iter 119 边界(gate.sh 头注释 + manual §7)。
+
+### 合法 shape 清单 + 覆盖状态
+| Shape | UNDERSTOOD? | 方案覆盖? |
+|-------|-------------|-----------|
+| 报告文件名扁平化碰撞 | ✓ | ✓(--verify 命名白名单,对抗 M1) |
+| 干净种子负例覆盖衰减 | ✓ | ✓(demo pass/fail 对,对抗 M2) |
+| CI 空转检查 | ✓ | ✓(ci_check 只跑 primitive,对抗 M3) |
+| 脚手架语义字段占位 | ✓ | ✓(留空+响亮门,对抗 M5) |
+| 评分器只读契约 | ✓ | ✓(写模式独立 new_seed.py,对抗 M6) |
+| severity 映射完整性 | ✓ | ✓(10 枚举全覆盖+断言,对抗 B1) |
+
+### 初版方案(被推翻点)
+--score-all 文件名为 `/→_` 无校验;demo 只加正确报告(干净种子负例清零);CI 调 gate.sh;--new-seed 进只读评分器;脚手架自动填语义字段;映射表漏 degenerate-zero。
+
+### 对抗审查结论([blocker]/[major] 清单)
+1 blocker(B1 映射漏 degenerate-zero)+ 7 major(M1 扁平化非单射+路径穿越 / M2 demo 负例衰减 / M3 CI 恒绿空转 / M4 §6 承诺矛盾 / M5/M6 脚手架语义与写模式 / M7 手册不同步)+ m1-m6。
+
+### 修订方案(逐条 采纳/反驳/backlog)
+全部采纳。B1→映射表全覆盖+`assert set==set`;M1→`--verify` 命名白名单(domain/name 仅 [a-z0-9-]、NN≥2位)+ new_seed 同消毒;M2→demo 每种子 pass/fail 对(13 项检查覆盖 score_report 全分支);M3→ci_check 只跑 verify+demo+py_compile,gate 的 LF 探测升级为 G4 留本地;M4→定案 --score-all 属本地回流,§6 改措辞;M5→脚手架空 keywords+占位描述+响亮门提示;M6→写模式独立 new_seed.py,评分器保持只读;M7→§3/§4/§6/§7 同步。
+
+### 数据流 hops 状态
+Datum: 种子生成流
+| Hop | 写者→读者 | 空间 | ✓/✗ |
+|-----|-----------|------|-----|
+| HOP 1 | new_seed.py 写 fixture.py/manifest.json | 文件系统 | ✓ |
+| HOP 2 | run_meta_bench.py --verify 读 manifest | schema 校验 | ✓ |
+| HOP 3 | --score-all/--demo 读 manifest+报告 | 评分语义 | ✓ |
+
+### 变种横向 grep 结果(Step 6 强制)
+映射表漏枚举(degenerate-zero)同变种:全仓 DEFAULT_SEVERITY/severity 映射仅 new_seed.py 一处,已断言守护。命名白名单缺失同变种:--verify 补 seed_dir_errors。
+
+### 改动文件
+run_meta_bench.py(--score-all/demo 扩展/类型标注/命名白名单);scripts/new_seed.py(新,写模式);scripts/ci_check.sh(新);.github/workflows/ci.yml(新);gate.sh(G4 LF);framework-manual.md §3/§4/§6/§7;README.md;LOOP-JOURNAL.md。
+
+### 测试证据
+--verify 8/8;--demo 13 项 pass/fail 对全过;--score-all 场景(全过/含 MISSING/空目录报错/--json)验证;new_seed 场景(生成/重名拒绝/非法名拒绝/severity 默认)验证;gate G4(CRLF .sh → FAIL)验证;ci_check 本地跑过;py_compile 全过。
+
+### E2E 证据
+本仓库 gate 自检(G1-G4)全 PASS;ci_check.sh 本地执行 PASS。
+
+### 过程意外 / 与预期偏差
+对抗 M3 实测:CI 快照下 gate.sh 输出 "no changes" 恒绿——空转检查被证伪后从 CI 移除,改为 primitive 直调。M4 承诺矛盾(§6:101"全种子基准属 CI 侧")经定案为本地回流工作流并同步手册。**测试抓到 2 个实现 bug**:(1) gate G4 用 `grep -q $'\r'` 在 Git Bash fresh 进程中不匹配(harness 内 0/脚本内 1,孤立 CR 模式怪癖,与 `$'\r'` 字节正确性无关)——改 `tr -cd '\r'` 后稳定;(2) `--score-all --json` 重构把 passed/failed/missing 只放 else 分支,JSON 分支 return 引用未绑定变量 → UnboundLocalError(JSON 输出本身正确但进程崩溃)——前置计算修复。
+
+### Pattern Index 更新:新增 report-name-flattening(seed 命名白名单防 --score-all 碰撞/路径穿越)/ demo-pass-fail-pairs(扩展 demo 必须带负例,防负例覆盖衰减)/ ci-primitive-only(CI 不调过程门禁,防恒绿空转)
+
+### 遗留 backlog
+无(本轮全清)。后续候选:pre-commit 钩子安装脚本(可选);第二领域包(等真实需求)。

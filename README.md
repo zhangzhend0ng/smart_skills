@@ -25,17 +25,20 @@ skills/<name>/SKILL.md
 - 自评测(meta-bench):
 
 ```bash
-python skills/adversarial-development-loop/scripts/run_meta_bench.py --verify   # 校验种子清单
-python skills/adversarial-development-loop/scripts/run_meta_bench.py --list     # 列出种子
-python skills/adversarial-development-loop/scripts/run_meta_bench.py --score <seed> <报告文件>  # 评分 REFUTE 检出
-python skills/adversarial-development-loop/scripts/run_meta_bench.py --demo     # 内置评分自测
+python skills/adversarial-development-loop/scripts/run_meta_bench.py --verify     # 校验种子清单
+python skills/adversarial-development-loop/scripts/run_meta_bench.py --list       # 列出种子
+python skills/adversarial-development-loop/scripts/run_meta_bench.py --score <seed> <报告文件>     # 评分 REFUTE 检出
+python skills/adversarial-development-loop/scripts/run_meta_bench.py --score-all <报告目录>        # 全种子基线(本地回流)
+python skills/adversarial-development-loop/scripts/run_meta_bench.py --demo       # 内置评分自测(全种子 pass/fail 对)
+python skills/adversarial-development-loop/scripts/new_seed.py <domain> <name> <flaw_type>         # 脚手架新种子(写模式)
 ```
 
 - 机械 gate(提交门禁,只查"有没有走框架"的机械事实):
 
 ```bash
-bash skills/adversarial-development-loop/scripts/gate.sh    # 代码/内核改动需 journal 条目;内核改动需 meta-bench 通过
+bash skills/adversarial-development-loop/scripts/gate.sh    # 代码/内核改动需 journal 条目;内核改动需 meta-bench 通过;.py/.sh 需 LF
 bash skills/adversarial-development-loop/scripts/gate.sh --why
+bash skills/adversarial-development-loop/scripts/ci_check.sh   # CI 回归(verify+demo+py_compile,由 .github/workflows/ci.yml 调用)
 ```
 
 **诚实局限**:meta-bench 是 toy 级冒烟测试;manifest 为作者人工标注(存在循环验证),bench 全绿 ≠ skill 有效。详见框架手册 §3。

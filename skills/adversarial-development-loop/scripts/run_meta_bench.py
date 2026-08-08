@@ -6,10 +6,11 @@ Smoke-tests whether a REFUTE report catches the seeded flaws in fixture code.
 Read the framework contract in references/framework-manual.md before editing.
 
 Modes (exactly one):
-  --verify                    validate every seed's manifest.json + fixture.py
-  --list                      list all seeds
-  --score SEED_ID REPORT      score one REFUTE report file against one seed
-  --demo                      self-test the scoring logic with built-in reports
+  --verify                   validate every seed's manifest.json + fixture.py
+  --list                     list all seeds
+  --score SEED_ID REPORT     score one REFUTE report file against one seed
+  --score-all DIR            score every seed against report files in DIR
+  --demo                     self-test the scoring logic (all seeds, pass/fail pairs)
 
 Scoring (see framework-manual.md §3):
   defect seed PASS = concept-level hit on expected_keywords (case-insensitive
@@ -18,10 +19,16 @@ Scoring (see framework-manual.md §3):
   clean seed  PASS = no [blocker] and no [major] in report
   All seeds PASS  = this baseline passes.
 
-Anti-gaming: an over-eager reviewer that flags everything [blocker] fails on
-the clean seeds (precision bound); a report that merely mentions the topic
-without the flaw concept, or marks it too low severity, fails on the defect
-seeds.
+--score-all DIR: report file per seed named <seed-id with '/' -> '_'>.md,
+  e.g. scoring-detection/01-false-perfect -> DIR/scoring-detection_01-false-perfect.md.
+  A seed without a report is reported as MISSING (baseline incomplete -> FAIL).
+  --json prints a machine-readable aggregate (per-seed status: pass|fail|missing).
+
+--demo: for EVERY seed, built-in pass/fail report pairs exercise all branches
+  of score_report (hit+severity, severity-too-low, no-keyword-hit; clean benign,
+  clean over-report). NOTE the circular-validation caveat: demo reports are
+  authored by the same author as the manifests, so demo green only proves
+  scorer<->manifest self-consistency, not skill effectiveness on real code.
 
 Honest limitations (must not be overstated):
   - Seeds are toy-level smoke tests, not a measure of skill quality.
@@ -30,8 +37,12 @@ Honest limitations (must not be overstated):
     against labeled seeds, not that the skill works on real code.
   - Real calibration (manual REFUTE passes on real targets) is out of scope.
 
-Requires: Python 3 (stdlib only). Exits nonzero on any failure.
+Requires: Python 3.8+ (`from __future__ import annotations`; stdlib only).
+Exits nonzero on any failure. Write operations live in scripts/new_seed.py —
+this runner stays read-only.
 """
+
+from __future__ import annotations
 
 import argparse
 import json
@@ -52,12 +63,22 @@ VALID_SEVERITIES = ("blocker", "major", "minor")
 SEVERITY_ORDER = {"blocker": 3, "major": 2, "minor": 1, "none": 0}
 CLEAN_SEVERITY_CAP = "minor"  # clean seeds: nothing above minor allowed
 
+# 命名白名单(M1 修复):domain/name 仅 [a-z0-9-](无下划线,保证 --score-all
+# 报告文件名扁平化单射、防路径穿越);NN >= 2 位数字
+NAME_RE = re.compile(r"^[a-z0-9-]+$")
+ENTRY_RE = re.compile(r"^([0-9]{2,})-(.+)$")
+
 SEVERITY_PATTERN = re.compile(r"\[(blocker|major|minor)\]", re.IGNORECASE)
 
 
-def find_manifests(root=SEEDS_ROOT):
+def report_filename(seed_id: str) -> str:
+    """--score-all 报告文件名:seed_id 的 '/' -> '_'(见模块 docstring)。"""
+    return seed_id.replace("/", "_") + ".md"
+
+
+def find_manifests(root: str = SEEDS_ROOT) -> list[tuple[str, str]]:
     """Return list of (seed_id, manifest_path) found under root, sorted."""
-    found = []
+    found: list[tuple[str, str]] = []
     if not os.path.isdir(root):
         return found
     for domain in sorted(os.listdir(root)):
@@ -73,14 +94,27 @@ def find_manifests(root=SEEDS_ROOT):
     return found
 
 
-def load_manifest(path):
+def load_manifest(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as fh:
         return json.load(fh)
 
 
-def validate_manifest(manifest, expected_id):
+def seed_dir_errors(domain: str, entry: str) -> list[str]:
+    """seed 目录命名校验(白名单 + NN 前缀;对抗 M1)。"""
+    errors: list[str] = []
+    if not NAME_RE.match(domain):
+        errors.append("domain %r must match [a-z0-9-]+" % domain)
+    m = ENTRY_RE.match(entry)
+    if not m:
+        errors.append("seed dir %r must match <NN>-<name> with NN >= 2 digits" % entry)
+    elif not NAME_RE.match(m.group(2)):
+        errors.append("seed name %r must match [a-z0-9-]+" % m.group(2))
+    return errors
+
+
+def validate_manifest(manifest: dict, expected_id: str, domain: str, entry: str) -> list[str]:
     """Return list of error strings for one manifest (empty == valid)."""
-    errors = []
+    errors = seed_dir_errors(domain, entry)
     for field in REQUIRED_FIELDS:
         if field not in manifest:
             errors.append("missing required field: %s" % field)
@@ -104,14 +138,14 @@ def validate_manifest(manifest, expected_id):
     return errors
 
 
-def severity_name(level):
+def severity_name(level: int) -> str:
     for name, order in SEVERITY_ORDER.items():
         if order == level:
             return name
     return "none"
 
 
-def max_severity_in(text):
+def max_severity_in(text: str) -> int | None:
     """Return highest severity level found in report text, or None."""
     levels = [SEVERITY_ORDER[m.group(1).lower()] for m in SEVERITY_PATTERN.finditer(text)]
     if not levels:
@@ -119,15 +153,15 @@ def max_severity_in(text):
     return max(levels)
 
 
-def keyword_hit(text, keywords):
+def keyword_hit(text: str, keywords: list[str]) -> bool:
     """True if any keyword appears as a case-insensitive substring."""
     lower = text.lower()
     return any(k.lower() in lower for k in keywords if k)
 
 
-def score_report(text, manifest):
+def score_report(text: str, manifest: dict) -> tuple[bool, list[str]]:
     """Return (passed, reasons). See module docstring for the contract."""
-    reasons = []
+    reasons: list[str] = []
     if manifest["flaw_type"] == "none":
         sev = max_severity_in(text)
         if sev is None or sev <= SEVERITY_ORDER["minor"]:
@@ -155,10 +189,10 @@ def score_report(text, manifest):
     return False, reasons
 
 
-def cmd_verify(args):
+def cmd_verify(args: argparse.Namespace) -> int:
     manifests = find_manifests()
     if not manifests:
-        sys.exit("no seeds found under %s" % SEEDS_ROOT)
+        sys.exit("no seeds found under %s (exit 2)" % SEEDS_ROOT)
     failures = 0
     seen = set()
     for seed_id, path in manifests:
@@ -168,7 +202,8 @@ def cmd_verify(args):
             print("ERROR %s: cannot load manifest: %s" % (seed_id, exc))
             failures += 1
             continue
-        errors = validate_manifest(manifest, seed_id)
+        domain, entry = seed_id.split("/", 1)
+        errors = validate_manifest(manifest, seed_id, domain, entry)
         if seed_id in seen:
             errors.append("duplicate seed id")
         seen.add(seed_id)
@@ -186,7 +221,7 @@ def cmd_verify(args):
     return 0 if failures == 0 else 1
 
 
-def cmd_list(args):
+def cmd_list(args: argparse.Namespace) -> int:
     for seed_id, path in find_manifests():
         try:
             manifest = load_manifest(path)
@@ -197,7 +232,7 @@ def cmd_list(args):
     return 0
 
 
-def cmd_score(args):
+def cmd_score(args: argparse.Namespace) -> int:
     seed_id, report_path = args.score
     matches = [p for sid, p in find_manifests() if sid == seed_id]
     if not matches:
@@ -225,19 +260,97 @@ def cmd_score(args):
     return 0 if passed else 1
 
 
-def cmd_demo(args):
-    """Self-test the scoring logic. Exits nonzero if any path is wrong."""
+def cmd_score_all(args: argparse.Namespace) -> int:
+    """批量评分(--score-all):本地回流工作流的基线命令。"""
+    report_dir = args.score_all
+    if not os.path.isdir(report_dir):
+        sys.exit("report directory not found: %s (exit 2)" % report_dir)
+    manifests = find_manifests()
+    if not manifests:
+        sys.exit("no seeds found under %s (exit 2)" % SEEDS_ROOT)
+
+    results: list[dict] = []
+    found_reports = 0
+    for seed_id, path in manifests:
+        try:
+            manifest = load_manifest(path)
+        except (OSError, ValueError) as exc:
+            sys.exit("cannot load manifest %s: %s (run --verify)" % (path, exc))
+        rname = report_filename(seed_id)
+        rpath = os.path.join(report_dir, rname)
+        if not os.path.isfile(rpath):
+            results.append({"seed": seed_id, "status": "missing", "passed": False,
+                            "reasons": ["no report file: %s" % rname]})
+            continue
+        found_reports += 1
+        try:
+            with open(rpath, "r", encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError as exc:
+            sys.exit("cannot read report file %s: %s" % (rpath, exc))
+        passed, reasons = score_report(text, manifest)
+        results.append({"seed": seed_id, "status": "pass" if passed else "fail",
+                        "passed": passed, "reasons": reasons,
+                        "flaw_type": manifest["flaw_type"],
+                        "expected_severity": manifest["expected_severity"]})
+    if found_reports == 0:
+        sys.exit("no report files (*.md) found in %s (exit 2)" % report_dir)
+
+    passed = sum(1 for r in results if r["status"] == "pass")
+    failed = sum(1 for r in results if r["status"] == "fail")
+    missing = sum(1 for r in results if r["status"] == "missing")
+    if args.json:
+        print(json.dumps({"seeds": results, "summary": {
+            "passed": passed, "failed": failed, "missing": missing, "total": len(results),
+        }}, ensure_ascii=False))
+    else:
+        for r in results:
+            print("%-7s %s: %s" % (r["status"].upper(), r["seed"], "; ".join(r["reasons"])))
+        print("summary: %d/%d passed, %d failed, %d missing"
+              % (passed, len(results), failed, missing))
+    return 0 if (failed == 0 and missing == 0) else 1
+
+
+def cmd_demo(args: argparse.Namespace) -> int:
+    """Self-test the scoring logic across ALL seeds (pass/fail pairs)."""
     seed_ids = dict(find_manifests())
+    # (seed, report, expect_pass, label) — 覆盖 score_report 全分支(M2:干净种子也带负例)
     checks = [
+        # 缺陷种子:命中 + 严重级达标 → PASS
         ("scoring-detection/01-false-perfect",
          "空输入返回 100 属假满分(false-perfect):无数据不可观测,应退出总分 [blocker]",
-         True, "defect seed detected"),
-        ("scoring-detection/05-clean-toy",
-         "全部函数防御不足,一律 [blocker] 需重写 [major]",
-         False, "clean seed rejects gamey over-reporting"),
+         True, "defect hit+severity"),
+        ("scoring-detection/02-degenerate-zero",
+         "空数据返回 0 是假最差(false-worst):检测工具漏报比误报危险,应退出总分 [blocker]",
+         True, "defect hit+severity"),
+        ("scoring-detection/03-magic-threshold",
+         "85 是魔数(magic-threshold),无出处且与默认上限 70 矛盾 [major]",
+         True, "defect hit+severity"),
+        ("scoring-detection/04-dead-branch",
+         "clamp 后判断 clamped<0 是死代码(dead-branch),分支不可达 [major]",
+         True, "defect hit+severity"),
+        # 缺陷种子:严重级不足 → FAIL
+        ("scoring-detection/01-false-perfect",
+         "这是假满分(false-perfect),但只标了 [minor]",
+         False, "severity too low"),
         ("scoring-detection/03-magic-threshold",
          "85 这个数可以补个注释 [minor]",
-         False, "severity below expectation fails"),
+         False, "severity too low"),
+        # 缺陷种子:关键词不中(概念未识别)→ FAIL
+        ("scoring-detection/04-dead-branch",
+         "这个函数有点长,建议拆分 [major]",
+         False, "no keyword hit"),
+        # 干净种子:良性报告(无 blocker/major)→ PASS
+        ("scoring-detection/05-clean-toy", "逻辑清晰,阈值有出处,无发现", True, "clean benign"),
+        ("scoring-detection/06-clean-config", "max 优先级正确,默认值有出处", True, "clean benign"),
+        ("scoring-detection/07-clean-verdict",
+         "无数据退出总分,实现符合契约 [minor]", True, "clean benign"),
+        ("scoring-detection/08-out-of-scope", "静态查找表,本 skill 不适用", True, "out-of-scope benign"),
+        # 干净种子:泛化 over-report → FAIL
+        ("scoring-detection/05-clean-toy",
+         "全部函数防御不足,一律 [blocker] 需重写 [major]",
+         False, "clean gamey"),
+        ("scoring-detection/08-out-of-scope", "查找表缺默认值 [blocker]", False, "out-of-scope over-report"),
     ]
     failures = 0
     for seed, report, expect, label in checks:
@@ -260,7 +373,7 @@ def cmd_demo(args):
     return 0 if failures == 0 else 1
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Meta-benchmark runner for adversarial-development-loop "
                     "(contract: references/framework-manual.md).")
@@ -268,21 +381,27 @@ def main(argv=None):
     parser.add_argument("--list", action="store_true", help="list all seeds")
     parser.add_argument("--score", nargs=2, metavar=("SEED_ID", "REPORT"),
                         help="score a REFUTE report file against one seed")
-    parser.add_argument("--demo", action="store_true", help="self-test scoring logic")
+    parser.add_argument("--score-all", metavar="DIR",
+                        help="score every seed against reports in DIR "
+                             "(file name: <seed-id with '/'->'_'>.md)")
+    parser.add_argument("--demo", action="store_true", help="self-test scoring logic (all seeds)")
     parser.add_argument("--json", action="store_true",
-                        help="with --score: print a machine-readable JSON result (for aggregation)")
+                        help="with --score/--score-all: machine-readable JSON output")
     args = parser.parse_args(argv)
 
     chosen = [name for name, val in vars(args).items()
-              if name in ("verify", "list", "score", "demo") and val not in (False, None)]
+              if name in ("verify", "list", "score", "score_all", "demo")
+              and val not in (False, None)]
     if len(chosen) != 1:
-        parser.error("choose exactly one mode: --verify | --list | --score | --demo")
+        parser.error("choose exactly one mode: --verify | --list | --score | --score-all | --demo")
     if args.verify:
         return cmd_verify(args)
     if args.list:
         return cmd_list(args)
     if args.score:
         return cmd_score(args)
+    if args.score_all:
+        return cmd_score_all(args)
     return cmd_demo(args)
 
 
