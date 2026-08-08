@@ -273,7 +273,7 @@ Datum: 种子生成流
 映射表漏枚举(degenerate-zero)同变种:全仓 DEFAULT_SEVERITY/severity 映射仅 new_seed.py 一处,已断言守护。命名白名单缺失同变种:--verify 补 seed_dir_errors。
 
 ### 改动文件
-run_meta_bench.py(--score-all/demo 扩展/类型标注/命名白名单);scripts/new_seed.py(新,写模式);scripts/ci_check.sh(新);.github/workflows/ci.yml(新);gate.sh(G4 LF);framework-manual.md §3/§4/§6/§7;README.md;LOOP-JOURNAL.md。
+run_meta_bench.py(--score-all/demo 扩展/类型标注/命名白名单);scripts/new_seed.py(新,写模式);scripts/ci_check.sh(新);.github/workflows/ci.yml(新);gate.sh(G4 LF + **自定位 meta-bench**:默认路径改为 `$GATE_DIR/run_meta_bench.py`,安装到 ~/.zcode/skills 等项目外位置仍可用);framework-manual.md §3/§4/§6/§7;README.md;LOOP-JOURNAL.md。
 
 ### 测试证据
 --verify 8/8;--demo 13 项 pass/fail 对全过;--score-all 场景(全过/含 MISSING/空目录报错/--json)验证;new_seed 场景(生成/重名拒绝/非法名拒绝/severity 默认)验证;gate G4(CRLF .sh → FAIL)验证;ci_check 本地跑过;py_compile 全过。

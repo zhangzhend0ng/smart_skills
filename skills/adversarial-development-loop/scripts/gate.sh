@@ -31,11 +31,15 @@ set -fuo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "GATE: not a git repository (exit 2)"; exit 2; }
 
+# 自定位 scripts 目录(绝对路径):meta-bench 与 gate 同目录发布,
+# 安装到 ~/.zcode/skills 等位置后仍能正确找到 runner(不依赖 repo 相对布局)。
+GATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 CODE_PATTERNS="${GATE_CODE_PATTERNS:-*.cpp *.hpp *.h *.c *.py *.rs *.go *.js *.ts *.tsx *.jsx *.sh *.java *.cs *.rb *.php *.lua *.toml Makefile Dockerfile}"
 KERNEL_PATTERNS="${GATE_KERNEL_PATTERNS:-skills/**/SKILL.md skills/**/references/framework-manual.md}"
 BENCH_PATTERNS="${GATE_BENCH_PATTERNS:-skills/**/scripts/*.py skills/**/assets/meta-bench/**}"
 JOURNAL_PATHS="${GATE_JOURNAL:-LOOP-JOURNAL.md docs/loop-journal.md}"
-META_BENCH_CMD="${GATE_META_BENCH_CMD:-skills/adversarial-development-loop/scripts/run_meta_bench.py}"
+META_BENCH_CMD="${GATE_META_BENCH_CMD:-$GATE_DIR/run_meta_bench.py}"
 
 if [ "${1:-}" = "--why" ]; then
   cat <<'EOF'
