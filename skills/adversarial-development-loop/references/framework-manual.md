@@ -77,3 +77,25 @@ assets/meta-bench/seeds/<domain>/<NN>-<name>/
 1. 复制到目标客户端路径(如 `cp -r skills/adversarial-development-loop ~/.zcode/skills/`);
 2. 删除/改名低优先级位置的旧副本;
 3. 验证实际加载版本:`grep -n "框架结构速览" ~/.zcode/skills/adversarial-development-loop/SKILL.md`(命中 = 新版本已就位)。
+
+## 6. 机械 gate(提交门禁)
+
+`scripts/gate.sh` 只拦"有没有走框架"的**机械事实**,不判语义质量:
+
+- **G1 journal 覆盖**:代码/内核改动(CODE ∪ KERNEL 模式)必须伴随 journal 改动
+- **G2 journal 完成标志**:journal 内容必须含合法 `Pattern Index 更新: (N/A|新增)` 行
+- **G3 内核/bench 资产改动**:必须通过 meta-bench `--verify` + `--demo`(只读)
+
+**iter 119 边界(硬约束)**:gate 只查"可由独立观察者复核的过程痕迹"(改动集 / marker 存在性 / bench 退出码),**禁止追加语义检查**——语义级防漂移脚本(check_drift.py 那一类)已被 iter 119 证伪(Stratum loop-journal.md:5297:脚本防不了语义漂移,靠 Pattern Index + 强制 grep + REFUTE 对抗核实)。语义质量靠对抗,不靠 gate。
+
+用法:
+
+```bash
+bash scripts/gate.sh            # exit 0=过;1=任一 FAIL;2=环境错误
+bash scripts/gate.sh --why      # 打印检查说明
+# pre-commit 钩子(可选):ln -s ../../skills/adversarial-development-loop/scripts/gate.sh .git/hooks/pre-commit
+```
+
+配置(env 覆盖,默认见脚本头):`GATE_CODE_PATTERNS` / `GATE_KERNEL_PATTERNS` / `GATE_BENCH_PATTERNS` / `GATE_JOURNAL` / `GATE_META_BENCH_CMD`。
+
+**已知宽松语义(对抗审查 M2 接受并文档化)**:G2 只要求 journal 文件含 ≥1 条合法 marker,不校验"哪条 marker 对应哪次改动"——那是语义事实,超出机械边界。全种子 `--score` 基准属于 CI 侧(见 backlog),本地 gate 只跑 `--verify` + `--demo`。

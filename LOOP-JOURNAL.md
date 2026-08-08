@@ -180,3 +180,54 @@ grep 编辑区确认落地;LF 探测 0 CRLF;meta-bench 契约重跑通过。
 
 ### 遗留 backlog
 提交拆分(3 logical unit);类型标注(接受);CI 门禁脚本;`--score-all`;真实样本回流;journal 机械校验(注意:iter 119 已证伪同类脚本,backlog 内仅作记录不实施)。
+
+---
+
+## 迭代 4 — 机械 gate 提交门禁(对抗设计 + 落地)
+
+### 触发的理论缺口
+框架"保证代码处于框架内开发"缺机制层;唯一不违反 iter 119 的机制增量 = 机械记账 gate(查存在性,不判语义)。
+
+### grep journal 结果(Step 1 强制)
+Pattern Index:fact-provenance / severity-bracket-contract / meta-bench;iter 119 一手源(Stratum loop-journal.md:5297):"脚本只能防数字/路径漂移,防不了语义/方案级漂移——后者靠对抗式核实"。
+
+### 合法 shape 清单 + 覆盖状态
+| Shape | UNDERSTOOD? | 方案覆盖? |
+|-------|-------------|-----------|
+| 改内核无 journal | ✓ | ✓(G1 覆盖 CODE∪KERNEL,对抗 B1) |
+| untracked 目录折叠漏拦 | ✓ | ✓(-uall,对抗 M1;实测抓到 glob 展开 bug) |
+| unborn HEAD(空仓库首提) | ✓ | ✓(rev-parse 守卫,对抗 M5) |
+| marker 空值绕过 | ✓ | ✓(值域 N/A|新增,对抗 m2) |
+| bench 资产改动(种子/运行器) | ✓ | ✓(BENCH_PATTERNS,对抗 M3) |
+
+### 初版方案(被推翻点)
+G1 只管 CODE_PATTERNS(漏内核);git status 默认折叠目录;G2 判定未定义;写死 python3;unborn HEAD 崩溃;shopt nullglob 破坏模式变量。
+
+### 对抗审查结论([blocker]/[major] 清单)
+2 blocker(B1 内核改动漏拦 / B2 与 iter 119 证伪记录矛盾、一手源缺失)+ 5 major(M1 目录折叠 / M2 G2 判定未定义 / M3 KERNEL 过窄 / M4 python 入口陷阱 / M5 unborn HEAD)+ m1-m6(模式过宽、空值绕过、bash 可移植、G3 语义边界、测试性、最小集)。
+
+### 修订方案(逐条 采纳/反驳/backlog)
+全部采纳。B1→G1 覆盖 CODE∪KERNEL;B2→gate 头注释引 iter 119 一手源声明机械边界 + 本条目修正 backlog 措辞(记账 gate ≠ 防漂移脚本);M1→`-uall`+剥离状态前缀/重命名;M2→untracked 直查文件内容、宽松语义文档化;M3→新增 BENCH_PATTERNS;M4→`py→python→python3` 探测 + 四态退出码(0/0/1/2);M5→`git rev-parse` 守卫;m1→模式收敛(去 yml/json/.github);m2→值域校验;m3→`set -f` 等;m4→语义边界文档(全种子基准归 CI);m5→9 场景测试;m6→最小集确认(G1/G2/G3 无冗余)。
+
+### 数据流 hops 状态
+N/A(独立脚本,无跨层 datum)
+
+### 变种横向 grep 结果(Step 6 强制)
+shopt nullglob 破坏模式——同变种(模式变量被 pathname expansion 展开)已排查:全脚本仅模式循环一处依赖字面模式,`set -f` 统一修复。
+
+### 改动文件
+scripts/gate.sh(新);references/framework-manual.md §6;README.md;LOOP-JOURNAL.md。
+
+### 测试证据
+9 场景 harness 全过(scratch git 仓库 + stub bench):无改动 exit 0 / 新目录代码无 journal FAIL / 代码+journal 0 / journal 缺 marker FAIL / 内核+bench 过 0 / 内核+bench 败 FAIL / bench 资产触发 G3 0 / bench 缺失 exit 2 / marker 空值 FAIL。**首跑抓到真 bug**:nullglob 把 `*.py` 展开成 cwd 具体文件名,case 永不匹配,门禁静默失效——`set -f` 修复后 9/9。
+
+### E2E 证据
+对本仓库自检:`bash gate.sh` 全 PASS(G1 代码+journal 覆盖 / G2 marker 合法 / G3 内核改动跑真 bench 通过)——见提交前自检输出。
+
+### 过程意外 / 与预期偏差
+对抗 B2 指出"iter 119 证伪记录与设计前提矛盾"——核查一手源(Stratum :5297)后确认是**类别区分**:check_drift 是语义级防漂移(需白名单/解释,被证伪),gate 是机械记账(只查存在性);边界写进 gate 头注释硬约束。nullglob bug 是 harness 首跑抓出(非对抗报告内容)——证明测试的必要性,记入过程意外。
+
+### Pattern Index 更新:新增 gate-bookkeeping-boundary(记账 gate 只查存在性;语义检查是 iter 119 证伪类)/ glob-expansion-in-patterns(set -f 防模式变量被 cwd 展开)
+
+### 遗留 backlog
+CI 门禁挂钩(pre-commit/CI 接入 gate;全种子 `--score` 基准放 CI 侧,沿用 m4 建议);类型标注(接受);`--score-all`;真实样本回流。迭代 3 backlog 中"journal 机械校验(iter 119 已证伪)"一条——本轮以记账 gate 形式落地,与证伪的 check_drift(语义级)区隔,边界见 gate.sh 头注释。
