@@ -313,3 +313,37 @@ meta-bench `--verify` 8/8 manifests valid;`--demo` 全过(含 pass/fail 对)。
 
 ### 遗留 backlog
 回灌通道提示(本地/CI 存在性检测,iter 119 边界内只报"两边不一致",不做语义比较)。
+
+## 迭代 7 — 收尾纪律补丁:closeout 声明机械重算 + 可用性探针(独立 REFUTE 修订版)
+
+### 验证级别: independent-REFUTE(子 agent 冷核验,VERDICT=REJECT,3 blocker + 5 major 驱动修订)
+### 触发的理论缺口
+Gcode-diff 31 轮实战暴露四个批次边界缺口:(1) 批次收尾宣称「independent-REFUTE 30/30、self-refuted 0%」而逐条目重算为 19/1/10,且独立复核文档(docs/rounds/INDEPENDENT-REFUTE-REVIEW.md)推翻的 4 项被静默吞掉;(2) 22 份 per-round report 声称「子 agent 不可用」,一个探针即证伪——self-refuted 轮方向否决 0 次,抽样 7 轮翻 4(2 blocker);(3) journal 迁移曾整轮丢失 L8 + APPEND-HERE 双标记;(4) crate 根残留多会话 scratch(du 实测 ~816MB)且各轮引测试数 392、收尾实测 402。
+### grep journal 结果(Step 1 强制)
+Pattern Index(迭代 1-6):skill-copy-divergence / shadow-priority(迭代 6 刚复发又收拢)/ fact-provenance(迭代 3:引用数字前核一手源——正是本轮 REFUTE 抓我初版"22 轮 self-refuted"口径混写的同族)。内核 Rationalization Table「journal 里写了 X」行管读侧;本轮补的是写侧(closeout 产出)。
+### 初版方案(被推翻点)
+P1 closeout 机械重算入内核 §批次收尾;P2 探针+「连续 ≥2 self-refuted 强制升级」入 Step 2;P3 归档核验入手册;P4 工作区卫生+计数引用入内核 Step 5。证据数字用了未复核的"22 轮 self-refuted"、"392 vs 396"、~800MB。
+### 对抗审查结论([blocker]/[major] 清单)
+- [blocker] "Batch Start"概念本 skill 不存在(实战跑的是项目侧 lite 变体);探针落点须用本 skill 语义定义
+- [blocker] "22 轮 self-refuted"口径混写(report 声称不可用的轮数 ≠ journal 标 self-refuted 的轮数),未复核数字写内核违自训纪律
+- [blocker] "392 vs 396"中 396 无任何落盘出处(真实漂移是各轮 392 vs 收尾实测 402);"~800MB"无出处
+- [major] P4 两条均批末规则,按 §8 迁出规则应进手册 §9 非内核 Step 5 / P1 重算依赖标记行但标记措辞已漂移(「验证级别」vs「验证等级」),须同时钉死标记规范 / 升级阈值可被交替标签游戏化且 4 个被翻轮全部命中既有「必派」类目——缺的是探针不是阈值 / closeout 数字本身无独立验证,可派 refuter 审计 / 标记与 report 冲突须按低级别计
+- [minor] 实证案例应并入既有条目旁不开新行;「未关账不得写」须拆机械(清单存在性)与语义(真伪);grep 命令措辞去 shell 依赖
+### 修订方案(逐条 采纳/反驳/backlog)
+采纳全部 blocker/major/minor,仅反驳一处:「先裁决 lite 变体同步/废弃」超出本仓库补丁范围(项目侧决策),记 backlog。最终:探针并入 Step 2 现句(删升级阈值);量化锚点追加到「已知结构局限」既有 bullet;journal 模板加「验证级别」标记行(重算前提);内核批次收尾指针 三→五件事;手册 §9 新增第 4 件(重算+冲突低级计+复核推翻项清单+计数引自最后一次运行)与第 5 件(工作区卫生),第 2 件补切档核验(bash grep -c 或等价计数+标记唯一);证据数字改为有出处口径(392→402;~816MB 落本条目)。
+### 数据流 hops 状态
+| Hop | 写者→读者 | ✓/✗ |
+|-----|-----------|-----|
+| 1 | journal 模板「验证级别」标记行 → 批末重算 grep | ✓ 新增 |
+| 2 | 手册 §9 第 4 件 → closeout 写入者 | ✓ |
+| 3 | Step 2 探针句 → 会话首次派发前实测 | ✓ |
+| 4 | 内核指针(五件事) → 手册 §9 细则 | ✓ 单一真源在手册 |
+### 改动文件
+skills/adversarial-development-loop/SKILL.md(内核净增 1 行:模板标记行;Step 2/局限/收尾指针均原位改写);references/framework-manual.md(§9 净增 2 件)。
+### 测试证据
+meta-bench `--verify` 8/8 + `--demo` 全过(gate G3,补丁后复跑);内核净增 1 行 ≤15 合规且实证并入既有条目(§8 纪律)。
+### 过程意外 / 与预期偏差
+初版方案 3 个 blocker 全是「用未核实数字论证禁止未核实数字」——自家 Rationalization Table 的 fact-provenance 条目(迭代 3)打了补丁作者自己。REFUTE 复核还发现 journal 标记措辞已漂移(验证级别/等级混写),单拼写 grep 复算不出 19/1/10——「措辞不稳=等于没索引」的自训在收尾场景再次应验。同步安装副本时又抓到 manual §5 验证命令 grep「框架结构速览」是 stale-doc(精简版标题已改,永不命中)——已改为 grep 当前版本特有稳定串。
+### Pattern Index 更新:新增 closeout-fabrication(收尾声明凭愿望覆写直方图,须按标记行重算+可派 refuter 复核)/ availability-probe(子 agent 可用性必须会话内实测,陈旧「不可用」声明=stale-claim,据其降级的必派轮视为未 REFUTE)
+### 遗留 backlog
+Gcode-diff 项目侧 lite 变体与本 skill 本体的同步/归属裁决;回灌通道提示(同迭代 6)。

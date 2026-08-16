@@ -75,7 +75,7 @@ assets/meta-bench/seeds/<domain>/<NN>-<name>/
 
 1. 复制到目标客户端路径(如 `cp -r skills/adversarial-development-loop ~/.zcode/skills/`);
 2. 删除/改名低优先级位置的旧副本;
-3. 验证实际加载版本:`grep -n "框架结构速览" ~/.zcode/skills/adversarial-development-loop/SKILL.md`(命中 = 新版本已就位)。
+3. 验证实际加载版本:grep 该版本特有的稳定串,如 `grep -n "收尾声明机械重算" ~/.zcode/skills/adversarial-development-loop/SKILL.md`(命中 = 当前版已就位;勿用会随重构漂移的旧标题串)。
 
 ## 6. 机械 gate(提交门禁)
 
@@ -126,12 +126,14 @@ bash scripts/gate.sh --why      # 打印检查说明
 
 **迁出规则(本手册的存在方式)**:内核每轮全量加载,只有"每轮都用"的内容留内核;**编辑期/批末才用的细则迁本手册,内核留 1-3 行指针**(含可 grep 关键词)。已迁:内核维护纪律(本节)、批次收尾细则(§9)。分类法/对抗 prompt/诚实性原则**永远禁止迁出**(§1 边界)。
 
-## 9. 批次收尾规程(每 ~20 轮 / 会话边界执行;iter 538 从内核迁入,规则不变)
+## 9. 批次收尾规程(每 ~20 轮 / 会话边界执行;iter 538 从内核迁入;第 4/5 件为 2026-08 Gcode-diff 战役后新增)
 
-**兜底,不替代单轮 Step 6 的 Pattern Index 更新**——用"批末补"合理化单轮跳过 = 流程违规。三件事:
+**兜底,不替代单轮 Step 6 的 Pattern Index 更新**——用"批末补"合理化单轮跳过 = 流程违规。五件事:
 
 1. **Pattern Index 查漏追补**:扫本批每轮「Pattern Index 更新」栏,把标了 N/A 但其实有可复用教训的、或整轮漏标的,提炼成稳定英文关键词行追加。单轮维护到位时这步是空的。
-2. **原始轮次物理归档(保持 grep 可达)**:已完成批次从活跃 journal 切到带批号文件(`loop-journal-iterNNN-NNN.md`),活跃文件只留当前批。**归档 ≠ 删除**——物理分区但 grep glob 仍跨批查到;目的是活跃文件保持短、教训上下文不丢。
+2. **原始轮次物理归档(保持 grep 可达)**:已完成批次从活跃 journal 切到带批号文件(`loop-journal-iterNNN-NNN.md`),活跃文件只留当前批。**归档 ≠ 删除**——物理分区但 grep glob 仍跨批查到;目的是活跃文件保持短、教训上下文不丢。**切档前后机械核验:bash 下 `grep -c '^## 迭代'`(或等价计数)两边相等(实战曾整轮丢失 L8);journal 的 APPEND-HERE 类插入标记全文唯一(实战曾双标记)。**
 3. **盲区回收问一句**:本批有无反复出现、但分类法/缺口清单没覆盖的失败模式?有 → 提炼成新条目候选,记进 Pattern Index「Skill 流程适配」子节,作为下一轮 R1 扩张种子。
+4. **收尾声明机械重算(closeout 是审计产物,不是宣传产物)**:验证级别直方图等统计必须从各轮 journal 的「验证级别」标记行逐条重算(bash 下 `grep -c` 或等价计数)并附可复核命令,不许凭批次愿望覆写——实战曾把 19 IND / 1 mechanical / 10 self-refuted 写成「30/30 independent-REFUTE、0% self-refuted」;**标记与 per-round 产物(report)声明冲突时按较低级别计并在收尾留痕**;批次内存在独立复核文档(REFUTE-REVIEW 类)推翻的轮次时,closeout 必须逐项列其状态(已修/残留/backlog)——清单存在性可机械核查(同 G2 形态),状态真伪属语义,可派一个 refuter 复核 closeout 数字与各轮标记的一致性;测试总数必须引自**最后一次真实全量运行**的输出行(实战:各轮引 392、收尾实测 402)。写侧纪律,与内核 Rationalization Table「journal 里写了 X」(读侧)互补。
+5. **工作区卫生**:临时探针/日志/隔离构建目录(`CARGO_TARGET_DIR` 等)会话内清理或置于仓库外;批末 `git status` 除有意产物外必须干净(实战曾在 crate 根残留多会话 scratch 构建目录与日志)。
 
 **为什么重心是蒸馏不是归档**:物理切分只解决"人眼加载",不解决"机器 grep 返回量"。真正的减法只有"把散在 N 轮的教训压缩成 Pattern Index 一行"——grep 命中 1 行而非 N 段。归档是配套,蒸馏是本体。

@@ -139,7 +139,7 @@ when_to_use: |
 通过自检的候选才进 Step 2。
 
 ### 2. REFUTE — 派对抗子 agent 证伪方案(核心,不可省)
-派一个独立子 agent 作为对抗审查者(用你所在环境的子 agent 机制,如 Codex subagent / Claude Agent 工具),prompt 见下。它读源码逐行核实每个前提,**并核对方案是否覆盖了 ⓪ 枚举出的每个 shape 与退化输入格**,返回分级清单。若当前环境无法起子 agent,则做严格的自我证伪(默认怀疑,逐条对照下方核查项)。
+派一个独立子 agent 作为对抗审查者(用你所在环境的子 agent 机制,如 Codex subagent / Claude Agent 工具),prompt 见下。它读源码逐行核实每个前提,**并核对方案是否覆盖了 ⓪ 枚举出的每个 shape 与退化输入格**,返回分级清单。若当前环境无法起子 agent,则做严格的自我证伪(默认怀疑,逐条对照下方核查项)。**「无法起」必须在会话内首次派发前真实探针实测**——陈旧的「不可用」声明 = stale-claim:据其把本应必派的候选(阈值/配置/聚合/跨层类)降级为 self-refuted 的轮,一律视为未 REFUTE(实测:self-refuted 方向否决 0 次,抽样独立复核翻出 2 blocker,且全部命中"必派"类目——绕过点正是无实测的可用性声明)。
 若 [blocker] 证伪了整个方向(如发现目标链路是不可达死代码,或方案漏掉整个 shape 且无法补)→ **立即停止,回 Step 1 重选触发点**。
 
 **轻重判据(何时可免子代理走轻量自对抗)**:单分支、无配置/新阈值、有现成回归测试、不跨层 → 可自对抗;触及阈值/配置/聚合/多分支/跨层 → 必须派子 agent。**"看起来简单"不是免派理由**——最险的 BLOCKER 恰恰长在"简单"方案上。
@@ -301,7 +301,7 @@ skill 的大部分步骤(ENUMERATE、横向 grep、可达性门 Step 1.5、Patte
 
 - **iter 240 漏 `scores.overall`(横向 grep 关键词选窄)→ 存活 49 轮 → iter 289 靠 E2E 碰巧打印 67.58 才抓到**——若 E2E 没覆盖,永远漏。兜底是概率性非保证性。
 - **Pattern Index 机械完成标志在 295 轮 journal 里从未被执行**(grep 命中 1 次)——skill 自己定的规则自己不执行,自证步骤的"通过"不可信。
-- **iter 293/294/289 三轮标"轻量自对抗",无一被独立验证抓住**。
+- **iter 293/294/289 三轮标"轻量自对抗",无一被独立验证抓住**;**Gcode-diff 2026-08 量化锚点:self-refuted 方向否决 0 次,抽样 7 轮 independent-REFUTE 翻 4(2 blocker)——"self-refute ≈ 没做 REFUTE"不是理论,是实测**。
 
 **含义**:不要把自证步骤的"通过"当 REFUTE 级可信度。横向 grep"无兄弟字段"≠ 真没有(可能关键词选窄);可达性门"通过"≠ 真可达(可能 grep 漏 caller)。**对触及阈值/配置/聚合/跨层的改动,自证不够用,必派 REFUTE**——这是把概率性兜底升成机制性验证的唯一手段。无子 agent 环境下此局限恶化:REFUTE 退化为自我证伪(= 自证),核心对抗机制失效。发现新的"自证失效→延迟发现"案例,追加进上面实证列表(带 iter 号)。
 
@@ -322,6 +322,7 @@ skill 的大部分步骤(ENUMERATE、横向 grep、可达性门 Step 1.5、Patte
 
 ```markdown
 ## 迭代 N — <主题>
+### 验证级别: independent-REFUTE | mechanical-REFUTE | self-refuted(诚实标注;批次收尾按此标记行重算直方图,见手册 §9)
 ### 触发的理论缺口
 ### grep journal 结果(Step 1 强制:Pattern Index 主题级 + 过程意外 + backlog;记关键词与命中)
 ### 合法 shape 清单 + 覆盖状态(Step 0 产出)
@@ -359,7 +360,7 @@ skill 的大部分步骤(ENUMERATE、横向 grep、可达性门 Step 1.5、Patte
 
 ## 批次收尾(每 ~20 轮 / 会话边界)— 兜底蒸馏 + 归档
 
-**这是兜底,不替代单轮 Step 6**——用"批末补"合理化单轮跳过 = 流程违规。批末三件事:**Pattern Index 查漏追补**(扫本批每轮更新栏,补漏标/漏提炼)→ **原始轮次物理归档**(切到 `loop-journal-iterNNN-NNN.md`,活跃文件只留当前批;归档 ≠ 删除,grep glob 仍跨批可达)→ **盲区回收问一句**(本批有无分类法没覆盖的反复失败模式 → Pattern Index「Skill 流程适配」种子)。重心是蒸馏不是归档:真正的减法只有"把散在 N 轮的教训压成 Pattern Index 一行"。细节见 `references/framework-manual.md`「批次收尾规程」。
+**这是兜底,不替代单轮 Step 6**——用"批末补"合理化单轮跳过 = 流程违规。批末五件事:**Pattern Index 查漏追补**(扫本批每轮更新栏,补漏标/漏提炼)→ **原始轮次物理归档**(切到 `loop-journal-iterNNN-NNN.md`,活跃文件只留当前批;归档 ≠ 删除,grep glob 仍跨批可达)→ **盲区回收问一句**(本批有无分类法没覆盖的反复失败模式 → Pattern Index「Skill 流程适配」种子)→ **收尾声明机械重算**(closeout 直方图/计数按各轮「验证级别」标记重算,审计产物不是宣传产物)→ **工作区卫生**(临时产物清理,`git status` 干净)。重心是蒸馏不是归档:真正的减法只有"把散在 N 轮的教训压成 Pattern Index 一行"。细节见 `references/framework-manual.md`「批次收尾规程」。
 
 ## 框架结构(Standard Framework Layout,速览)
 
