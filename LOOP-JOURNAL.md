@@ -288,3 +288,28 @@ run_meta_bench.py(--score-all/demo 扩展/类型标注/命名白名单);scripts/
 
 ### 遗留 backlog
 无(本轮全清)。后续候选:pre-commit 钩子安装脚本(可选);第二领域包(等真实需求)。
+
+## 迭代 6 — live 基线回灌:安装副本演进未回流仓库(skill-copy-divergence 复发)
+
+### 触发的理论缺口
+仓库(权威发行源,最后提交 2026-08-08 23:27)与 `~/.zcode/skills` 安装副本(= `~/.agents/skills` 副本,逐字节一致)再次发散:SKILL.md 416→366 行(21 hunk / 148 行)、framework-manual.md 115→137 行。安装副本含 08-08 之后的 live 演进(iter 535/538 成本约定:报告硬上限 ≤60 行 / 实验预算 ≤2 / 主读范围;Common Mistakes 条目迁回权威定义处后整节删除;内核维护纪律与批次收尾细则迁入手册 §8/§9)——从未回流仓库。迭代 1 的 skill-copy-divergence 复发。
+
+### grep journal 结果(Step 1 强制)
+Pattern Index(迭代 1-5):skill-copy-divergence(本轮即其复发)/ shadow-priority(.zcode 会 shadow .agents,同步时两处都要写)。零新坑。
+
+### 合法 shape 清单 + 覆盖状态
+纯文本同步轮,无代码 shape。变更面已用 `diff -rq` 核实:仅 SKILL.md 与 framework-manual.md 两文件,agents/assets/scripts 逐字节一致。精简为无损搬移(diff 全量人工核对:被删 Common Mistakes 三条非重复条目均已在 Step 1 / Step 1.5 / Red Flags 权威位置存在)。
+
+### 改动文件
+skills/adversarial-development-loop/SKILL.md(416→366 行,live 演进回灌);references/framework-manual.md(115→137 行,+§8 内核维护纪律、+§9 批次收尾规程)。
+
+### 测试证据
+meta-bench `--verify` 8/8 manifests valid;`--demo` 全过(含 pass/fail 对)。
+
+### 过程意外 / 与预期偏差
+安装副本 mtime(2026-08-16)远晚于仓库最后提交(08-08):live 演进长期无回流通道,divergence 每多存一天,manual §5 警告的 shadow 场景风险就多一分。
+
+### Pattern Index 更新: N/A(skill-copy-divergence 迭代 1 已收录,本轮为其复发实例,不另立条目)
+
+### 遗留 backlog
+回灌通道提示(本地/CI 存在性检测,iter 119 边界内只报"两边不一致",不做语义比较)。
